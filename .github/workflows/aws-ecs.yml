@@ -90,3 +90,4 @@ jobs:
         done
         echo "Deployment status: $STATUS"
         echo "::set-output name=status::$STATUS"
+
