@@ -4,8 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:  # <-- Add this line to allow manual triggeringing
- 
+  workflow_dispatch:  # <-- Add this line to allow manual triggering
 
 env:
   AWS_REGION: eu-west-1                  # set this to your preferred AWS region, e.g. us-west-1
@@ -50,9 +49,25 @@ jobs:
         # Build a docker container and
         # push it to ECR so that it can
         # be deployed to ECS.
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f ./django/build-process/docker-backend-django/Dockerfile .
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f ./Dockerfile .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
 
- 
+  deploy:
+    name: Deploy
+    runs-on: self-hosted
+
+    needs: build-and-push
+    
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Deploy Amazon ECS task definition
+      run: 
+        aws ecs update-service --cluster $ECS_CLUSTER --no-paginate --service $ECS_SERVICE --force-new-deployment        
